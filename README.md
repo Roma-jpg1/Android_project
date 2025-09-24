@@ -38,6 +38,19 @@ for (i in 1..seconds) {
 - Используется многопоточность (`kotlin.concurrent.thread`) для одновременного движения всех объектов.
 
 ```kotlin
+for (i in 1..seconds) {
+        val threads = mutableListOf<Thread>()
+        for (person in allof) {
+            val th = thread {
+            val rand_x = listOf(-1, 1).random()
+            val rand_y = listOf(-1, 1).random()
+            person.moveTo(rand_x, rand_y)}
+            threads.add(th)
+        }
+        threads.forEach { it.join() }
+        println()
+        Thread.sleep(500)
+    }
 ```
 
 ## Как работает
