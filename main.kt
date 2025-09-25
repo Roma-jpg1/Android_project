@@ -13,8 +13,7 @@ class Human{
         name=_name
         surname=_surname
         second_name=_second
-        speed=_sp
-    }
+        speed=_sp}
 
 //    fun move(){
 //        print("human is moved")
