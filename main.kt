@@ -13,8 +13,7 @@ class Human{
         name=_name
         surname=_surname
         second_name=_second
-        speed=_sp
-    }
+        speed=_sp}
 
 //    fun move(){
 //        print("human is moved")
@@ -50,13 +49,9 @@ fun main(){
         Human("Ирина", "Павлова", "Николаевна", 3)
     )
     print("Сколько тиков будут ходить люди? (цел число): ")
-    val input = readln()
-    val seconds = try {
-        input.toInt().coerceAtLeast(0)
-    } catch (e: NumberFormatException) {
-        println("Invalid input. Use Int value or not least 1! \n Using default value = 1.")
-        1
-    }
+    val seconds = readln().toInt()
+    println()
+
     for (i in 1..seconds) {
         for (person in humans) {
             val rand_x = listOf(-1, 1).random()
