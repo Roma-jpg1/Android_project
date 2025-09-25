@@ -52,7 +52,6 @@ fun main(){
     val seconds = readln().toInt()
     println()
 
-
     for (i in 1..seconds) {
         for (person in humans) {
             val rand_x = listOf(-1, 1).random()
