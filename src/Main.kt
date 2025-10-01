@@ -2,7 +2,7 @@ import kotlin.concurrent.thread
 import kotlin.random.Random
 
 
-fun main(){
+fun main() {
 
     val humans = arrayOf(
         Human("Алексей", "Иванов", "Сергеевич", 1),
@@ -11,7 +11,7 @@ fun main(){
     )
 
     val Driv = driver("Иван", "Смирнов", "Игоревич", 25)
-    val allof = humans+Driv
+    val allof = humans + Driv
 
     print("Сколько тиков будут ходить люди? (цел число): ")
     val seconds = readln().toInt()
@@ -22,9 +22,10 @@ fun main(){
         val threads = mutableListOf<Thread>()
         for (person in allof) {
             val th = thread {
-            val rand_x = listOf(-1, 1).random()
-            val rand_y = listOf(-1, 1).random()
-            person.moveTo(rand_x, rand_y)}
+                val rand_x = listOf(-1, 1).random()
+                val rand_y = listOf(-1, 1).random()
+                person.moveTo(rand_x, rand_y)
+            }
             threads.add(th)
         }
         threads.forEach { it.join() }
