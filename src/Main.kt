@@ -1,6 +1,7 @@
-import java.util.Random
-class Human{
+import kotlin.concurrent.thread
+import kotlin.random.Random
 
+open class Human{
     var name: String=""
     var surname: String=""
     var second_name: String=""
@@ -16,60 +17,55 @@ class Human{
         speed=_sp
     }
 
-//    fun move(){
-//        print("human is moved")
-//
-//    }
-
-    fun moveTo(_toX: Int, _toY: Int){
+    open fun moveTo(_toX: Int, _toY: Int){
         x+=_toX*speed
         y+=_toY*speed
-
         println("$name $surname move to: $x, $y with speed:$speed")
     }
 
 }
 
+class driver(_name: String, _surname: String, _second: String, _sp: Int) : Human(_name, _surname, _second, _sp){
+    override fun moveTo(_toX: Int, _toY: Int){
+        if (Random.nextBoolean()){
+            x += -_toX*speed
+        } else {
+            y += _toY*speed
+        }
+        println("$name $surname move to: $x, $y with speed:$speed")
+    }
+}
+
+
+
 fun main(){
-    val random = Random()
+
     val humans = arrayOf(
         Human("Алексей", "Иванов", "Сергеевич", 1),
         Human("Дмитрий", "Петров", "Александрович", 1),
-        Human("Михаил", "Федоров", "Дмитриевич", 2),
-        Human("Иван", "Смирнов", "Игоревич", 3),
-        Human("Артем", "Кузнецов", "Олегович", 1),
-        Human("Сергей", "Попов", "Викторович", 5),
-        Human("Андрей", "Васильев", "Николаевич", 6),
-        Human("Анна", "Орлова", "Владимировна", 2),
-        Human("Екатерина", "Виноградова", "Сергеевна", 3),
-        Human("Ольга", "Соколова", "Андреевна", 4),
-        Human("Наталья", "Лебедева", "Ивановна", 1),
-        Human("Виктор", "Новиков", "Петрович", 5),
-        Human("Юрий", "Морозов", "Анатольевич", 6),
-        Human("Елена", "Зайцева", "Дмитриевна", 2),
-        Human("Ирина", "Павлова", "Николаевна", 3)
+        Human("Михаил", "Федоров", "Дмитриевич", 2)
     )
+
+    val Driv = driver("Иван", "Смирнов", "Игоревич", 25)
+    val allof = humans+Driv
+
     print("Сколько тиков будут ходить люди? (цел число): ")
     val seconds = readln().toInt()
     println()
 
+
     for (i in 1..seconds) {
-        for (person in humans) {
-            val rand_x = listOf(-1, 1).random()
-            val rand_y = listOf(-1, 1).random()
-            person.moveTo(rand_x, rand_y)
-            Thread.sleep(500)
+        val threads = mutableListOf<Thread>()
+        for (person in allof) {
+            val th = thread {
+                val rand_x = listOf(-1, 1).random()
+                val rand_y = listOf(-1, 1).random()
+                person.moveTo(rand_x, rand_y)}
+            threads.add(th)
         }
+        threads.forEach { it.join() }
         println()
+        Thread.sleep(500)
     }
-//    val randomIntInRange = random.nextInt(10, 100)
-////    val result = if (Random.nextBoolean()) 1 else -1
-//
-//    val petya: Human = Human("Petya", "Ivanov", "Petrovich", 443)
-////    petya.move()
-//    petya.moveTo(10,100)
-//    println("${petya.x}")
-
-
 
 }
