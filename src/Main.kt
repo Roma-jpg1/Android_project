@@ -38,7 +38,9 @@ class driver(_name: String, _surname: String, _second: String, _sp: Int) : Human
 
 
 
-fun main(){
+fun
+
+        main(){
 
     val humans = arrayOf(
         Human("Алексей", "Иванов", "Сергеевич", 1),
