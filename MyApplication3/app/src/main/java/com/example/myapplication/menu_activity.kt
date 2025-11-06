@@ -21,7 +21,7 @@ class MenuActivity : AppCompatActivity() {
         }
 
         btnPlayer.setOnClickListener {
-            val intent1 = Intent(this, playerActivity::class.java)
+            val intent1 = Intent(this, PlayerActivity::class.java)
             startActivity(intent1)
         }
 
