@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.media.*
@@ -37,6 +38,17 @@ class PlayerActivity : AppCompatActivity() {
             h.postDelayed(this, 1000)
         }
     }
+
+    private val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                Toast.makeText(this, "Доступ к аудио разрешён", Toast.LENGTH_SHORT).show()
+                load()
+            } else {
+                name.text = "Разрешение не выдано"
+                Toast.makeText(this, "Нужно разрешение для работы плеера", Toast.LENGTH_LONG).show()
+            }
+        }
 
     override fun onCreate(s: Bundle?) {
         super.onCreate(s)
@@ -76,15 +88,20 @@ class PlayerActivity : AppCompatActivity() {
             setOnCompletionListener { change(1) }
         }
 
-        check()
+        checkPermission()
     }
 
-    private fun check() {
-        val r = android.Manifest.permission.READ_MEDIA_AUDIO
-        if (checkSelfPermission(r) == PackageManager.PERMISSION_GRANTED) load()
-        else name.text = "Нет доступа"
+    private fun checkPermission() {
+        val permission = Manifest.permission.READ_MEDIA_AUDIO
+
+        if (checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED) {
+            load()
+        } else {
+            requestPermissionLauncher.launch(permission)
+        }
     }
 
+    @SuppressLint("Range")
     private fun load() {
         list.clear()
         val q = contentResolver.query(
@@ -103,7 +120,6 @@ class PlayerActivity : AppCompatActivity() {
         }
         if (list.isEmpty()) name.text = "Музыка не найдена" else start()
     }
-
 
     private fun start() {
         val f = list[i]
