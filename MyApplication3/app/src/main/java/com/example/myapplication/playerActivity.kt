@@ -101,7 +101,6 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    @SuppressLint("Range")
     private fun load() {
         list.clear()
         val q = contentResolver.query(

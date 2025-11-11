@@ -14,6 +14,7 @@ class MenuActivity : AppCompatActivity() {
         val btnCalc = findViewById<Button>(R.id.btnCalc)
         val btnExit = findViewById<Button>(R.id.btnExit)
         val btnPlayer = findViewById<Button>(R.id.btnPlayer)
+        val btnLocation = findViewById<Button>(R.id.btnLocation)
 
         btnCalc.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)
@@ -22,6 +23,11 @@ class MenuActivity : AppCompatActivity() {
 
         btnPlayer.setOnClickListener {
             val intent1 = Intent(this, PlayerActivity::class.java)
+            startActivity(intent1)
+        }
+
+        btnLocation.setOnClickListener {
+            val intent1 = Intent(this, LocationActivity::class.java)
             startActivity(intent1)
         }
 

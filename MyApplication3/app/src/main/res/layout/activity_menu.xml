@@ -25,6 +25,14 @@
         android:layout_marginBottom="20dp"/>
 
     <Button
+        android:id="@+id/btnLocation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Открыть локацию"
+        android:textSize="20sp"
+        android:layout_marginBottom="20dp"/>
+
+    <Button
         android:id="@+id/btnExit"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
