@@ -20,8 +20,16 @@ import androidx.core.app.ActivityCompat
 import com.example.myapplication.MainActivity
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import org.json.JSONObject
+import java.io.File
 
 class LocationActivity : AppCompatActivity() {
+
+
+    private var LastLat: Double? = null
+    private var LastLon: Double? = null
+    private var LastTime: Long =0
+
 
     val value: Int = 0
     val LOG_TAG: String = "LOCATION_ACTIVITY"
@@ -67,7 +75,6 @@ class LocationActivity : AppCompatActivity() {
         getCurrentLocation()
 
     }
-
     private fun getCurrentLocation(){
 
         if(checkPermissions()){
@@ -90,10 +97,14 @@ class LocationActivity : AppCompatActivity() {
                     } else {
                         tvLat.setText(location.latitude.toString())
                         tvLon.setText(location.longitude.toString())
-                        tvAlt.text = "${location.altitude} м"
+                        tvAlt.setText(location.altitude.toString())
 
                         val currentTime = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
                         tvCurt.text = currentTime
+
+                        if (doSave(location.latitude, location.longitude)){
+                            apptojson(location.latitude, location.longitude, location.altitude, currentTime)
+                        }
                     }
                 }
 
@@ -154,4 +165,49 @@ class LocationActivity : AppCompatActivity() {
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
 
     }
+
+    private fun doSave(currentLat: Double, currentLon: Double): Boolean{
+        val now = System.currentTimeMillis()
+        if (LastLat==null || LastLon==null || currentLat!=LastLat || currentLon!=LastLon || (now -LastTime)>=1000*60*5){
+            return true}
+        else{
+            return false
+        }
+        }
+
+
+    private fun updlast(lat: Double, lon: Double) {
+        LastLat=lat
+        LastLon=lon
+        LastTime=System.currentTimeMillis()
+    }
+
+    private fun apptojson(lat: Double, lon: Double, alt: Double, time: String){
+        val fname = "loc.json"
+        val file = File(filesDir, fname)
+
+        if (!file.exists()) {
+            val initialJson = """{ "locations": [] }"""
+            file.writeText(initialJson)
+        }
+
+        val jsonText = file.readText()
+        val jsonObject = JSONObject(jsonText)
+        val locationsArray = jsonObject.getJSONArray("locations")
+
+        val entry = JSONObject()
+        entry.put("lat", lat)
+        entry.put("lon", lon)
+        entry.put("alt", alt)
+        entry.put("time", time)
+
+        locationsArray.put(entry)
+
+        file.writeText(jsonObject.toString())
+
+        updlast(lat, lon)
+
+
+    }
+
 }
