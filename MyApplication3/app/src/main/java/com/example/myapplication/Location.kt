@@ -20,6 +20,7 @@ import androidx.core.app.ActivityCompat
 import com.example.myapplication.MainActivity
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import org.json.JSONObject
 import java.io.File
 
@@ -90,7 +91,7 @@ class LocationActivity : AppCompatActivity() {
                     requestPermissions()
                     return
                 }
-                myFusedLocationProviderClient.lastLocation.addOnCompleteListener(this){ task->
+                myFusedLocationProviderClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null).addOnCompleteListener(this){ task->
                     val location: Location?=task.result
                     if(location == null){
                         Toast.makeText(applicationContext, "problems with signal", Toast.LENGTH_SHORT).show()
