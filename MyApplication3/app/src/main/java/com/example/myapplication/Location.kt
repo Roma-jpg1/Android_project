@@ -27,6 +27,11 @@ import java.io.File
 class LocationActivity : AppCompatActivity() {
 
 
+    private lateinit var handler: android.os.Handler
+
+    private lateinit var runnable: Runnable
+
+
     private var LastLat: Double? = null
     private var LastLon: Double? = null
     private var LastTime: Long =0
@@ -73,9 +78,26 @@ class LocationActivity : AppCompatActivity() {
             startActivity(backToMain)
         })
 
-        getCurrentLocation()
-
+        val handler = android.os.Handler(mainLooper)
+        val runnable = object : Runnable {
+            override fun run() {
+                getCurrentLocation()
+                handler.postDelayed(this, 10000) //10
+            }
+        }
+        handler.post(runnable)
+        val timeHandler = android.os.Handler(mainLooper)
+        val timeRunnable = object : Runnable {
+            override fun run() {
+                val currentTime = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
+                    .format(java.util.Date())
+                tvCurt.text = currentTime
+                timeHandler.postDelayed(this, 1000) // 1
+            }
+        }
+        timeHandler.post(timeRunnable)
     }
+
     private fun getCurrentLocation(){
 
         if(checkPermissions()){
@@ -185,7 +207,10 @@ class LocationActivity : AppCompatActivity() {
 
     private fun apptojson(lat: Double, lon: Double, alt: Double, time: String){
         val fname = "loc.json"
-        val file = File(filesDir, fname)
+        val downloadDir = android.os.Environment.getExternalStoragePublicDirectory(
+            android.os.Environment.DIRECTORY_DOWNLOADS
+        )
+        val file = File(downloadDir, fname)
 
         if (!file.exists()) {
             val initialJson = """{ "locations": [] }"""
