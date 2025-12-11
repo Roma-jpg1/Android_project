@@ -23,6 +23,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import org.json.JSONObject
 import java.io.File
+import java.util.Date
 
 class LocationActivity : AppCompatActivity() {
 
@@ -122,11 +123,13 @@ class LocationActivity : AppCompatActivity() {
                         tvLon.setText(location.longitude.toString())
                         tvAlt.setText(location.altitude.toString())
 
-                        val currentTime = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
-                        tvCurt.text = currentTime
+                        val currentTime = location.time
+                        tvCurt.text = Date(currentTime).toString()
+
+
 
                         if (doSave(location.latitude, location.longitude)){
-                            apptojson(location.latitude, location.longitude, location.altitude, currentTime)
+                            apptojson(location.latitude, location.longitude, location.altitude, currentTime.toString())
                         }
                     }
                 }

@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
+import zmq.socket.Sockets
 
 class MenuActivity : AppCompatActivity() {
 
@@ -15,6 +16,7 @@ class MenuActivity : AppCompatActivity() {
         val btnExit = findViewById<Button>(R.id.btnExit)
         val btnPlayer = findViewById<Button>(R.id.btnPlayer)
         val btnLocation = findViewById<Button>(R.id.btnLocation)
+        val btnSockets = findViewById<Button>(R.id.btnSockets)
 
         btnCalc.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)
@@ -28,6 +30,11 @@ class MenuActivity : AppCompatActivity() {
 
         btnLocation.setOnClickListener {
             val intent1 = Intent(this, LocationActivity::class.java)
+            startActivity(intent1)
+        }
+
+        btnSockets.setOnClickListener {
+            val intent1 = Intent(this, SocketsActivity::class.java)
             startActivity(intent1)
         }
 
