@@ -15,6 +15,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import android.os.Handler
 import android.os.Looper
+import android.telephony.TelephonyManager
 import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
@@ -46,6 +47,8 @@ class SocketsActivity : AppCompatActivity() {
     private var LastLat: Double? = null
     private var LastLon: Double? = null
     private var LastTime: Long = 0
+
+    private var LastCell: String? = null
 
     companion object {
         const val PERMISSION_REQUEST = 100
@@ -148,13 +151,26 @@ class SocketsActivity : AppCompatActivity() {
                 (now - LastTime) >= 5 * 60 * 1000
     }
 
+    private fun getAllCellInfo(): String {
+        return try {
+            val list = (getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager).allCellInfo
+            if (list.isNullOrEmpty()) "allCellInfo:<empty>"
+            else list.joinToString("\n---\n") { it.toString() }
+        } catch (e: Exception) {
+            "allCellInfo:<error> ${e.message}"
+        }
+    }
+
     private fun sendLocationJSON(loc: Location) {
+
+        val cell = getAllCellInfo()
 
         val json = JSONObject().apply {
             put("lat", loc.latitude)
             put("lon", loc.longitude)
             put("alt", loc.altitude)
             put("time", loc.time.toString())
+            put("Cellallinfo", cell)
         }
 
         val jsonText = json.toString()
@@ -164,7 +180,8 @@ class SocketsActivity : AppCompatActivity() {
                 val context = ZMQ.context(1)
                 val socket = ZContext().createSocket(SocketType.REQ)
 
-                socket.connect("tcp://192.168.242.55:9560")
+//                socket.connect("tcp://192.168.242.55:9560")
+                socket.connect("tcp://10.0.2.2:5656")
 
                 socket.send(jsonText.toByteArray(ZMQ.CHARSET), 0)
 

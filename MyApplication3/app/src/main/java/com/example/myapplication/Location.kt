@@ -17,6 +17,7 @@ import android.util.Log
 import android.widget.Button
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.example.myapplication.MainActivity
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -24,6 +25,8 @@ import com.google.android.gms.location.Priority
 import org.json.JSONObject
 import java.io.File
 import java.util.Date
+
+import android.telephony.TelephonyManager
 
 class LocationActivity : AppCompatActivity() {
 
@@ -36,6 +39,8 @@ class LocationActivity : AppCompatActivity() {
     private var LastLat: Double? = null
     private var LastLon: Double? = null
     private var LastTime: Long =0
+
+    private var CellInf: String? = null
 
 
     val value: Int = 0
@@ -114,6 +119,9 @@ class LocationActivity : AppCompatActivity() {
                     requestPermissions()
                     return
                 }
+
+
+
                 myFusedLocationProviderClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null).addOnCompleteListener(this){ task->
                     val location: Location?=task.result
                     if(location == null){
@@ -124,17 +132,20 @@ class LocationActivity : AppCompatActivity() {
                         tvAlt.setText(location.altitude.toString())
 
                         val currentTime = location.time
+
                         tvCurt.text = Date(currentTime).toString()
 
 
 
                         if (doSave(location.latitude, location.longitude)){
-                            apptojson(location.latitude, location.longitude, location.altitude, currentTime.toString())
+                            val cell = getAllCellInfo()
+                            apptojson(location.latitude, location.longitude, location.altitude, currentTime.toString(), cell)
                         }
                     }
                 }
 
-            } else{
+            }
+            else{
                 // open settings to enable location
                 Toast.makeText(applicationContext, "Enable location in settings", Toast.LENGTH_SHORT).show()
                 val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
@@ -149,25 +160,74 @@ class LocationActivity : AppCompatActivity() {
 
     }
 
+
+    private fun getAllCellInfo(): String {
+        return try {
+            val list = (getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager).allCellInfo
+            if (list.isNullOrEmpty()) "allCellInfo:<empty>"
+            else list.joinToString("\n---\n") { it.toString() }
+        } catch (e: Exception) {
+            "allCellInfo:<error> ${e.message}"
+        }
+    }
+
+//    private fun requestPermissions() {
+//        Log.w(LOG_TAG, "requestPermissions()");
+//        ActivityCompat.requestPermissions(
+//            this,
+//            arrayOf(android.Manifest.permission.ACCESS_COARSE_LOCATION,
+//                android.Manifest.permission.ACCESS_FINE_LOCATION),
+//            PERMISSION_REQUEST_ACCESS_LOCATION
+//        )
+//    }
+
     private fun requestPermissions() {
-        Log.w(LOG_TAG, "requestPermissions()");
         ActivityCompat.requestPermissions(
             this,
-            arrayOf(android.Manifest.permission.ACCESS_COARSE_LOCATION,
-                android.Manifest.permission.ACCESS_FINE_LOCATION),
+            arrayOf(
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.READ_PHONE_STATE
+            ),
             PERMISSION_REQUEST_ACCESS_LOCATION
         )
     }
 
-    private fun checkPermissions(): Boolean{
-        if( ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
-            ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED )
-        {
-            return true
-        } else {
-            return false
-        }
+    private fun checkPermissions(): Boolean {
+        val fine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val coarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val phone = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
+        return (fine || coarse) && phone
     }
+
+//    private fun checkPermissions(): Boolean{
+//        if( ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
+//            ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
+//            (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED ||
+//                    ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)    )
+//        {
+//            return true
+//        } else {
+//            return false
+//        }
+//    }
+
+//    override fun onRequestPermissionsResult(
+//        requestCode: Int,
+//        permissions: Array<out String>,
+//        grantResults: IntArray
+//    ) {
+//        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+//        if(requestCode == PERMISSION_REQUEST_ACCESS_LOCATION)
+//        {
+//            if(grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED){
+//                Toast.makeText(applicationContext, "Permission granted", Toast.LENGTH_SHORT).show()
+//                getCurrentLocation()
+//            } else {
+//                Toast.makeText(applicationContext, "Denied by user", Toast.LENGTH_SHORT).show()
+//            }
+//        }
+//    }
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -175,9 +235,10 @@ class LocationActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if(requestCode == PERMISSION_REQUEST_ACCESS_LOCATION)
-        {
-            if(grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED){
+
+        if (requestCode == PERMISSION_REQUEST_ACCESS_LOCATION) {
+            val granted = grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+            if (granted) {
                 Toast.makeText(applicationContext, "Permission granted", Toast.LENGTH_SHORT).show()
                 getCurrentLocation()
             } else {
@@ -206,9 +267,10 @@ class LocationActivity : AppCompatActivity() {
         LastLat=lat
         LastLon=lon
         LastTime=System.currentTimeMillis()
+
     }
 
-    private fun apptojson(lat: Double, lon: Double, alt: Double, time: String){
+    private fun apptojson(lat: Double, lon: Double, alt: Double, time: String, cell: String){
         val fname = "loc.json"
         val downloadDir = android.os.Environment.getExternalStoragePublicDirectory(
             android.os.Environment.DIRECTORY_DOWNLOADS
@@ -229,6 +291,7 @@ class LocationActivity : AppCompatActivity() {
         entry.put("lon", lon)
         entry.put("alt", alt)
         entry.put("time", time)
+        entry.put("Cellallinfo", cell)
 
         locationsArray.put(entry)
 
