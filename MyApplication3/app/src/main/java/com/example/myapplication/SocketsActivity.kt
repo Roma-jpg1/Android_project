@@ -1,6 +1,7 @@
 package com.example.myapplication
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -15,12 +16,16 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import android.os.Handler
 import android.os.Looper
+import android.telephony.CellInfoCdma
+import android.telephony.CellInfoGsm
+import android.telephony.CellInfoLte
+import android.telephony.CellInfoNr
+import android.telephony.CellInfoWcdma
 import android.telephony.TelephonyManager
 import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresPermission
-import com.example.myapplication.R
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
@@ -28,7 +33,6 @@ import org.json.JSONObject
 import org.zeromq.ZContext
 import org.zeromq.SocketType
 import org.zeromq.ZMQ
-import java.util.Date
 
 class SocketsActivity : AppCompatActivity() {
 
@@ -70,20 +74,21 @@ class SocketsActivity : AppCompatActivity() {
 
         tvSockets = findViewById(R.id.tvSockets)
         tvMessages = findViewById(R.id.tvMessages)
-
-
     }
 
     @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
     override fun onResume() {
         super.onResume()
-        getCurrentLocation()
+        handler.postDelayed(sendRunnable, 4000)
     }
 
-    // ------------------ ЛОКАЦИЯ ---------------------
+    override fun onPause() {
+        super.onPause()
+        handler.removeCallbacks(sendRunnable)
+    }
+
     @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
     private fun getCurrentLocation() {
-
         if (!checkPermissions()) {
             requestPermissions()
             return
@@ -103,6 +108,9 @@ class SocketsActivity : AppCompatActivity() {
                     updateUI(location)
                     sendLocationJSON(location)
                 }
+            }
+            .addOnFailureListener { e ->
+                Log.e(LOG_TAG, "Ошибка получения локации", e)
             }
     }
 
@@ -138,8 +146,8 @@ class SocketsActivity : AppCompatActivity() {
 
     private fun isLocationEnabled(): Boolean {
         val m = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        return m.isProviderEnabled(LocationManager.GPS_PROVIDER)
-                || m.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        return m.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                m.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
     }
 
     private fun shouldSave(lat: Double, lon: Double): Boolean {
@@ -151,19 +159,71 @@ class SocketsActivity : AppCompatActivity() {
                 (now - LastTime) >= 5 * 60 * 1000
     }
 
+    @SuppressLint("MissingPermission")
     private fun getAllCellInfo(): String {
+        if (
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return "allCellInfo:<no permission>"
+        }
+
         return try {
             val list = (getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager).allCellInfo
-            if (list.isNullOrEmpty()) "allCellInfo:<empty>"
-            else list.joinToString("\n---\n") { it.toString() }
+            if (list.isNullOrEmpty()) {
+                "allCellInfo:<empty>"
+            } else {
+                list.joinToString("\n---\n") { it.toString() }
+            }
+        } catch (e: SecurityException) {
+            "allCellInfo:<security error> ${e.message}"
         } catch (e: Exception) {
             "allCellInfo:<error> ${e.message}"
         }
     }
 
-    private fun sendLocationJSON(loc: Location) {
+    @SuppressLint("MissingPermission")
+    private fun getSignalStrengthDbm(): Int {
+        if (
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return Int.MIN_VALUE
+        }
 
+        return try {
+            val tm = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+            val list = tm.allCellInfo ?: return Int.MIN_VALUE
+
+            val firstRegistered = list.firstOrNull { it.isRegistered } ?: list.firstOrNull()
+
+            when (firstRegistered) {
+                is CellInfoLte -> firstRegistered.cellSignalStrength.dbm
+                is CellInfoNr -> firstRegistered.cellSignalStrength.dbm
+                is CellInfoGsm -> firstRegistered.cellSignalStrength.dbm
+                is CellInfoWcdma -> firstRegistered.cellSignalStrength.dbm
+                is CellInfoCdma -> firstRegistered.cellSignalStrength.dbm
+                else -> Int.MIN_VALUE
+            }
+        } catch (e: SecurityException) {
+            Log.e(LOG_TAG, "SecurityException чтения сигнала", e)
+            Int.MIN_VALUE
+        } catch (e: Exception) {
+            Log.e(LOG_TAG, "Ошибка чтения сигнала", e)
+            Int.MIN_VALUE
+        }
+    }
+
+    private val sendRunnable = object : Runnable {
+        override fun run() {
+            getCurrentLocation()
+            handler.postDelayed(this, 4000)
+        }
+    }
+
+    private fun sendLocationJSON(loc: Location) {
         val cell = getAllCellInfo()
+        val signalDbm = getSignalStrengthDbm()
 
         val json = JSONObject().apply {
             put("lat", loc.latitude)
@@ -171,14 +231,18 @@ class SocketsActivity : AppCompatActivity() {
             put("alt", loc.altitude)
             put("time", loc.time.toString())
             put("Cellallinfo", cell)
+            put("signalDbm", signalDbm)
         }
 
         val jsonText = json.toString()
 
         Thread {
+            var context: ZContext? = null
+            var socket: ZMQ.Socket? = null
+
             try {
-                val context = ZMQ.context(1)
-                val socket = ZContext().createSocket(SocketType.REQ)
+                context = ZContext()
+                socket = context.createSocket(SocketType.REQ)
 
 //                socket.connect("tcp://192.168.242.55:9560")
                 socket.connect("tcp://10.0.2.2:5656")
@@ -186,17 +250,22 @@ class SocketsActivity : AppCompatActivity() {
                 socket.send(jsonText.toByteArray(ZMQ.CHARSET), 0)
 
                 val replyBytes = socket.recv(0)
-                val reply = String(replyBytes, ZMQ.CHARSET)
+                val reply = if (replyBytes != null) {
+                    String(replyBytes, ZMQ.CHARSET)
+                } else {
+                    "null"
+                }
 
                 handler.post {
                     tvMessages.append("Ответ сервера: $reply\n")
+                    tvMessages.append("signalDbm: $signalDbm\n")
                 }
-
-                socket.close()
-                context.close()
 
             } catch (e: Exception) {
                 Log.e(LOG_TAG, "Ошибка отправки JSON", e)
+            } finally {
+                socket?.close()
+                context?.close()
             }
         }.start()
     }

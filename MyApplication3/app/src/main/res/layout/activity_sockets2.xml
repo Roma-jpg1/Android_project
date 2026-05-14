@@ -19,6 +19,8 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+
+
     <!-- Область для вывода всех сообщений от сервера -->
     <ScrollView
         android:id="@+id/scrollMessages"
